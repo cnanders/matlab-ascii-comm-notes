@@ -7,11 +7,11 @@ Notes on sending and receiving ASCII data packets with MATLAB:
 
 # ASCII
 
-Recall that ASCII is a 8-bit character system (256 characters).  For example, the base10 representation of the “carriage return” character is 13, which is 0x0D in hex, or 00001101 in binary. 
+Recall that ASCII is a 8-bit character system (256 characters).  For example, the decimal representation of the “carriage return” character is 13, which is 0x0D in hex, or 00001101 in binary. 
 
-# Terminator Characters in Data Transmission 
+# Terminator Characters
 
-MATLAB must always send whatever terminator characters the serial device expects  When matlab reads data back, it will always need to strip any terminator characters sent from the device 
+MATLAB must always send whatever terminator characters the serial device expects.  When matlab reads data back, it needs to strip any terminator characters sent from the device 
 
 # `fprintf`
 
@@ -19,23 +19,40 @@ Support:
 - `MATLAB.serial`
 - `MATLAB.tcpip`
 
- `fprintf(x, cCommand)` converts the `char` array `cCommand` to an array of int8 (one int8 per character) and subsequently converts each int8 to 8 bits (e.g., 00110100) to form the data packet. In addition, there is also a subtle thing with fprintf that it formats the provided `char` array as %s\n (or optionally you can provide a format) and replaces instances of \n with the terminator byte.  
+ `fprintf(x, cCommand)` does a few non-obvious things 
+ 
+ 1. It formats the command as %s\n (optionally you can provide a format), E.g.:
 
-## Example
+```matlab
+cCommand = 'go' % becomes 'go\n'
+```
+ 2. It converts each character of the formatted command into an `int8` while taking special care to convert special sequences like “\n” for “line feed” and “\r” for “carriage return” into their correct ASCII values. E.g.:
 
 ```matlab
 cCommand = 'go' % ASCII
-% the base10 representation of 'go' is [103 111]
-% the terminator byte is appended.  Assuming the terminator is “carriage return“, the base10 data is [103 111 13]
-% The result is converted to binary for data transmission [1100111 1101111 0001101]
+% formatted to 'go\n' (by default)
+% the decimal representation of 'g' is 103
+% the decimal representation of 'o' is 111
+% the decimal representation of '\n' (special “line feed“ sequence) is 10
+% the decimal representation of the formatted ASCII data is [103 111 10]
+% The result is converted to binary for data transmission [1100111 1101111 0001010]
 ```
+ 
+## Warning (But Not Really)
+
+If the `Terminator` of the serial device is not “line feed” (10 decimal, 0x0A hex), `fprintf` **will not work** unless it is provided with a format that includes the correct `Terminator`.
+
+**Not quite.  Why?**
+
+ For serial port, TCPIP, UDP, and VISA-serial objects, `fprintf` replaces all occurrences of \n in the formatted cmd with the Terminator property value. Therefore, when using the default format %s\n, all commands written to the instrument will end with the `Terminator` property value.
+
 # `fscanf`
 
 Support:
 - `MATLAB.serial`
 - `MATLAB.tcpip`
 
-fscanf() is a nice utility because while it is reading, it reads `bytesAvailable` bytes continuously (while blocking) until it reads the terminator byte.
+fscanf() is a nice utility because while it is reading, it reads `bytesAvailable` bytes continuously (while blocking) until it reads the `Terminator` byte.
 
 ## `fwrite`
 
@@ -49,13 +66,15 @@ This is similar to `fprintf` except it writes binary data
  
  If one wishes to manually build data packets, `fwrite` should be used
 
-`fwrite` and `fread` (see below), provide full control over what is sent and received. `fprintf` and `fscanf` do some magic with replacing \n by the terminator that can lead to problems if you are not careful and 100% aware of how they work. 
+As mentinoed previously, `fprintf` and `fscanf` do some magic with replacing \n by the terminator that can lead to problems if you are not careful and 100% aware of how they work. 
 
 
 ## Example
 
-The base10 representation of the “carriage return” ASCII code is 13.
-The base10 representation of the “line feed” ASCII code is 10
+Assume the serial device terminator is “line feed + carriage return.
+
+- The decimal representation of the “line feed” ASCII code is 10
+- The decimal representation of the “carriage return” ASCII code is 13
 
 ```matlab
 u8Cmd = [uint8(cCmd) 10 13];
@@ -73,7 +92,7 @@ Support:
 
 In general, the programmer does not know how many bytes are returned by each command; the programmer does not know a-priori how many bytes to wait for in the input buffer.
 
-If we did we could have a while loop similar to while (this.comm.BytesAvailable < bytesRequired) that polls BytesAvailable and then only issues the fread(this.comm, bytesRequired) once those bytes are availabe. E.g.:
+If the programmer did the programmer could use a while loop similar to while (this.comm.BytesAvailable < bytesRequired) that polls BytesAvailable and then only issues the fread(this.comm, bytesRequired) once those bytes are availabe. E.g.:
 
 ```matlab
 this.waitForBytesAvailable(12);
