@@ -26,6 +26,12 @@ Support:
 ```matlab
 cCommand = 'go' % becomes 'go\n'
 ```
+
+ 2. For serial port, TCPIP, UDP, and VISA-serial objects, `fprintf` replaces all occurrences of \n in the formatted cmd with the Terminator property value. Therefore, when using the default format %s\n, all commands written to the instrument will end with the `Terminator` property value.  E.g., if `Terminator` = `CR`
+
+ ```matlab
+cCommand = 'go' % becomes 'go\n'
+``` 
  2. It converts each character of the formatted command into an `int8` while taking special care to convert special sequences like “\n” for “line feed” and “\r” for “carriage return” into their correct ASCII values. E.g.:
 
 ```matlab
@@ -38,13 +44,10 @@ cCommand = 'go' % ASCII
 % The result is converted to binary for data transmission [1100111 1101111 0001010]
 ```
  
-## Warning (But Not Really)
+## Warning
 
 If the `Terminator` of the serial device is not “line feed” (10 decimal, 0x0A hex), `fprintf` **will not work** unless it is provided with a format that includes the correct `Terminator`.
 
-**Not quite.  Why?**
-
- For serial port, TCPIP, UDP, and VISA-serial objects, `fprintf` replaces all occurrences of \n in the formatted cmd with the Terminator property value. Therefore, when using the default format %s\n, all commands written to the instrument will end with the `Terminator` property value.
 
 # `fscanf`
 
