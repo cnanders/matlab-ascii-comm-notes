@@ -141,7 +141,7 @@ function u8 = readToTerminator(this, u8Terminator)
 Support:
 - `MATLAB.tcpclient`
 
-Identical to `fwrite` but for `tcpclient` instances
+Identical to `fwrite` but for `tcpclient` instances. 
 
 
 # `read`
