@@ -90,6 +90,10 @@ Support:
 - `MATLAB.serial`
 - `MATLAB.tcpip`
 
+## BE EXTRA ADVISED
+
+**write()** and **fwrite()** require the matlab data type to be **uint8**.  For example, if you do fwrite(this.comm, [10 28 10 13]) you are sending a list of four *double*, each double requires 8 bytes (64 bit) to transmit, this would transmit 32 Bytes.  If you intened to send four bytes, one byte for 10 28 10 13, need to cast them as uint8.
+
 ### BE ADVISED
 
 *fread(), if not supplied with a number of bytes, will attempt to read tcpip.InputBufferSize bytes.*  In general, **never call fread() without specifying the number of bytes** because it will read for tcpip.Timeout seconds
